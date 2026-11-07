@@ -18,12 +18,13 @@ Abre `index.html` en un navegador moderno. No requiere dependencias ni servidor.
 
 ## Incluido en la primera base
 - Renderizado Canvas adaptable a móvil y escritorio.
-- Editor con cuadrícula, paleta, borrado y deshacer.
+- Editor con cuadrícula, paleta, borrado, deshacer y desplazamiento horizontal del área de edición.
 - Bloques, pinchos, sierras, orbes y pads amarillos/rosas/azules.
 - Portales de Cubo, Nave, Ball y UFO.
 - Física inicial para Cubo, Nave, Ball y UFO.
 - Guardado y carga de niveles en JSON.
 - Controles táctiles.
+- Orbes y UFO con detección de pulsación nueva para evitar activaciones repetidas al mantener pulsado.
 
 ## Pendiente
 - Integrar y recortar el spritesheet original del proyecto.
