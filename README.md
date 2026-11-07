@@ -18,9 +18,9 @@ Abre `index.html` en un navegador moderno. No requiere dependencias ni servidor.
 
 ## Incluido en la primera base
 - Renderizado Canvas adaptable a móvil y escritorio.
-- Editor con cuadrícula, paleta, borrado, deshacer y desplazamiento horizontal del área de edición.
+- Editor con cuadrícula, paleta, borrado, deshacer, desplazamiento horizontal, selección, movimiento, duplicado y zoom.
 - Bloques, pinchos, sierras, orbes y pads amarillos/rosas/azules.
-- Portales de Cubo, Nave, Ball y UFO.
+- Portales de Cubo, Nave, Ball, UFO, gravedad y velocidad (rápida/lenta).
 - Física inicial para Cubo, Nave, Ball y UFO.
 - Guardado y carga de niveles en JSON.
 - Controles táctiles.
@@ -30,7 +30,8 @@ Abre `index.html` en un navegador moderno. No requiere dependencias ni servidor.
 - Integrar y recortar el spritesheet original del proyecto.
 - Ajustar las físicas mediante pruebas y parámetros editables.
 - Colisiones de plataformas y geometrías más precisas.
-- Portales de gravedad, velocidad, tamaño y dual.
+- Portales de tamaño y dual.
+- Selección múltiple, copiar/pegar, capas y triggers avanzados.
 - Editor avanzado: selección, mover, duplicar, zoom, capas, triggers y deshacer/rehacer completo.
 - Música, sincronización, efectos, menús y progreso.
 - Pruebas en dispositivos reales y optimización.
