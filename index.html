@@ -113,7 +113,8 @@ function activate(o){
  if(o.type==='padB'&&!o.used){p.gravity*=-1;p.vy=0;o.used=true}
 }
 function update(dt){
- if(!playing)return;cam+=speed*dt;p.orbCooldown=Math.max(0,p.orbCooldown-dt);\n if(p.mode==='ball'&&press&&!pressWas){p.gravity*=-1;p.vy=0;p.onGround=false;}pressWas=press;
+ if(!playing)return;const previousBottom=p.y+p.size/2,previousTop=p.y-p.size/2;cam+=speed*dt;p.orbCooldown=Math.max(0,p.orbCooldown-dt);
+ if(p.mode==='ball'&&press&&!pressWas){p.gravity*=-1;p.vy=0;p.onGround=false;}pressWas=press;
  if(p.mode==='ship'){p.vy+=(press?-1050:850)*dt;p.vy=Math.max(-440,Math.min(440,p.vy))}
  else{p.vy+=1450*p.gravity*dt;if(p.mode==='cube'&&press&&p.onGround){p.vy=-540*p.gravity;p.onGround=false}if(p.mode==='ufo'&&press&&p.orbCooldown<=0){p.vy=-470*p.gravity;p.orbCooldown=.2}}
  p.y+=p.vy*dt;p.onGround=false;
@@ -122,7 +123,7 @@ function update(dt){
  if(p.y>H+80||p.y<-80){die();return}
  const box={x:p.x-p.size/2,y:p.y-p.size/2,w:p.size,h:p.size};
  for(const o of objects){if(o.x-cam>W+80||o.x+o.w-cam<-80)continue;const ob={x:o.x-cam,y:o.y,w:o.w,h:o.h};if(!rectHit(box,ob))continue;
- if(['block','spike','saw'].includes(o.type)){die();return}
+ if(o.type==='block'){const topHit=p.gravity===1&&previousBottom<=o.y+5&&p.vy>=0;const bottomHit=p.gravity===-1&&previousTop>=o.y+o.h-5&&p.vy<=0;if(topHit){p.y=o.y-p.size/2;p.vy=0;p.onGround=true}else if(bottomHit){p.y=o.y+o.h+p.size/2;p.vy=0;p.onGround=true}else{die();return}}else if(o.type==='spike'||o.type==='saw'){die();return}
  if(o.type.startsWith('portal'))activate(o);
  else if(o.type.startsWith('pad'))activate(o);
  else if(o.type.startsWith('orb'))activate(o);
