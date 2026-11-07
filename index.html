@@ -40,7 +40,7 @@ aside{display:flex;flex-direction:column;gap:10px}.panel{padding:12px}.panel h2{
 </div>
 <div id="stage"><canvas id="game" width="960" height="540"></canvas>
 <div id="touchControls"><button id="touchJump">SALTAR</button><button id="touchPause">PAUSA</button></div></div>
-<div class="hint"><span>Editor: clic/toca para colocar · clic derecho para borrar</span><span>Juego: ESPACIO / ↑ / toque</span></div>
+<div class="hint"><span>Editor: clic/toca para colocar · clic derecho para borrar</span><span>Juego: ESPACIO / ↑ / toque</span></div><input id="editorScroll" aria-label="Desplazamiento horizontal del editor" type="range" min="0" max="5000" value="0" style="width:100%;margin:4px 0">
 </section>
 <aside class="side">
 <section class="panel"><h2>Objetos</h2><div id="palette"></div><p class="small">Elige un objeto y colócalo en el escenario. Los orbes se activan pulsando; los pads y portales, al tocarlos.</p></section>
@@ -62,7 +62,7 @@ const defs=[
  ['orbY','Orbe amarillo','#ffff00'],['padY','Pad amarillo','#ffff00'],['orbP','Orbe rosa','#ff4de8'],['padP','Pad rosa','#ff4de8'],['orbB','Orbe azul','#4deafa'],['padB','Pad azul','#4deafa'],
  ['portalCube','Portal cubo','#eeeeee'],['portalShip','Portal nave','#4deafa'],['portalBall','Portal ball','#ffb347'],['portalUfo','Portal UFO','#bd55ff']
 ];
-let objects=[],history=[],selected='block',playing=false,dead=false,complete=false,cam=0,speed=300,grid=48,press=false,pressWas=false,attempt=0,last=0,levelLength=5000;
+let objects=[],history=[],selected='block',playing=false,dead=false,complete=false,cam=0,editorCam=0,speed=300,grid=48,press=false,pressWas=false,attempt=0,last=0,levelLength=5000;
 const palette=$('palette');
 for(const [id,name,color] of defs){const b=document.createElement('button');b.dataset.type=id;b.innerHTML='<i class="sw" style="background:'+color+'"></i>'+name;b.onclick=()=>choose(id);palette.append(b)}
 function choose(id){selected=id;document.querySelectorAll('#palette button').forEach(b=>b.classList.toggle('active',b.dataset.type===id));$('selection').textContent='Seleccionado: '+defs.find(d=>d[0]===id)[1]}
@@ -95,7 +95,7 @@ function drawObject(o){
 }
 function drawPlayer(){c.save();c.translate(p.x,p.y);const s=p.size;c.lineWidth=3;c.strokeStyle='#fff';if(p.mode==='ship'){c.fillStyle='#4deafa';c.beginPath();c.moveTo(-s/2,-s/3);c.lineTo(s/2,0);c.lineTo(-s/2,s/3);c.closePath();c.fill();c.stroke()}else if(p.mode==='ufo'){c.fillStyle='#ff4de8';c.beginPath();c.ellipse(0,0,s*.6,s*.32,0,Math.PI,0);c.lineTo(s*.6,s*.25);c.lineTo(-s*.6,s*.25);c.closePath();c.fill();c.stroke()}else{c.rotate(p.rotation);c.fillStyle=p.mode==='ball'?'#ffb347':'#42ef63';c.fillRect(-s/2,-s/2,s,s);c.strokeRect(-s/2,-s/2,s,s);c.fillStyle='#111';c.fillRect(-s*.16,-s*.16,s*.32,s*.32)}c.restore()}
 function render(){
- drawBg();objects.forEach(drawObject);
+ if(!playing)cam=editorCam;drawBg();objects.forEach(drawObject);
  if(!playing&&$('showGrid').checked){c.strokeStyle='#ffffff18';c.lineWidth=1;for(let x=-(cam%grid);x<W;x+=grid){c.beginPath();c.moveTo(x,0);c.lineTo(x,GROUND);c.stroke()}for(let y=0;y<GROUND;y+=grid){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke()}}
  drawPlayer();
  if(playing){c.fillStyle='#fff';c.font='bold 16px system-ui';c.fillText(Math.min(100,Math.floor(cam/Math.max(1,levelLength-W)*100))+'%',W-60,28);c.fillStyle='#29364c';c.fillRect(18,18,160,7);c.fillStyle='#4deafa';c.fillRect(18,18,160*Math.min(1,cam/(levelLength-W)),7)}
@@ -132,10 +132,11 @@ function update(dt){
 }
 function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);render();requestAnimationFrame(loop)}requestAnimationFrame(loop);
 function start(){attempt++;playing=true;dead=complete=false;cam=0;press=false;pressWas=false;objects.forEach(o=>o.used=false);resetPlayer();$('status').textContent='JUGANDO · intento '+attempt}
-function edit(){playing=false;cam=0;press=false;pressWas=false;resetPlayer();$('status').textContent='EDITOR · GJ 0.1.0';render()}
+function edit(){playing=false;cam=0;editorCam=0;$('editorScroll').value=0;press=false;pressWas=false;resetPlayer();$('status').textContent='EDITOR · GJ 0.1.0';render()}
 $('play').onclick=start;$('edit').onclick=edit;
 $('undo').onclick=()=>{if(history.length){objects=history.pop();render()}};
 $('clear').onclick=()=>{if(confirm('¿Eliminar todos los objetos?')){snapshot();objects=[];render()}};
+$('editorScroll').oninput=e=>{editorCam=+e.target.value;render()};
 $('speed').oninput=e=>speed=+e.target.value;$('grid').oninput=e=>grid=+e.target.value;
 function pos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
 canvas.addEventListener('pointerdown',e=>{if(playing){press=true;if(dead||complete)start();return}if(e.button===2)return;const q=pos(e),x=Math.round((q.x+cam)/grid)*grid,y=Math.max(0,Math.min(GROUND-grid,Math.round((q.y-grid/2)/grid)*grid));add(selected,x,y);render()});
