@@ -62,7 +62,7 @@ const defs=[
  ['orbY','Orbe amarillo','#ffff00'],['padY','Pad amarillo','#ffff00'],['orbP','Orbe rosa','#ff4de8'],['padP','Pad rosa','#ff4de8'],['orbB','Orbe azul','#4deafa'],['padB','Pad azul','#4deafa'],
  ['portalCube','Portal cubo','#eeeeee'],['portalShip','Portal nave','#4deafa'],['portalBall','Portal ball','#ffb347'],['portalUfo','Portal UFO','#bd55ff']
 ];
-let objects=[],history=[],selected='block',playing=false,dead=false,complete=false,cam=0,speed=300,grid=48,press=false,attempt=0,last=0;
+let objects=[],history=[],selected='block',playing=false,dead=false,complete=false,cam=0,speed=300,grid=48,press=false,pressWas=false,attempt=0,last=0;
 const palette=$('palette');
 for(const [id,name,color] of defs){const b=document.createElement('button');b.dataset.type=id;b.innerHTML='<i class="sw" style="background:'+color+'"></i>'+name;b.onclick=()=>choose(id);palette.append(b)}
 function choose(id){selected=id;document.querySelectorAll('#palette button').forEach(b=>b.classList.toggle('active',b.dataset.type===id));$('selection').textContent='Seleccionado: '+defs.find(d=>d[0]===id)[1]}
@@ -113,7 +113,7 @@ function activate(o){
  if(o.type==='padB'&&!o.used){p.gravity*=-1;p.vy=0;o.used=true}
 }
 function update(dt){
- if(!playing)return;const prevY=p.y;cam+=speed*dt;p.orbCooldown=Math.max(0,p.orbCooldown-dt);
+ if(!playing)return;cam+=speed*dt;p.orbCooldown=Math.max(0,p.orbCooldown-dt);\n if(p.mode==='ball'&&press&&!pressWas){p.gravity*=-1;p.vy=0;p.onGround=false;}pressWas=press;
  if(p.mode==='ship'){p.vy+=(press?-1050:850)*dt;p.vy=Math.max(-440,Math.min(440,p.vy))}
  else{p.vy+=1450*p.gravity*dt;if(p.mode==='cube'&&press&&p.onGround){p.vy=-540*p.gravity;p.onGround=false}if(p.mode==='ufo'&&press&&p.orbCooldown<=0){p.vy=-470*p.gravity;p.orbCooldown=.2}}
  p.y+=p.vy*dt;p.onGround=false;
@@ -130,7 +130,7 @@ function update(dt){
  if(cam>=5000-W){complete=true;playing=false}
 }
 function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);render();requestAnimationFrame(loop)}requestAnimationFrame(loop);
-function start(){attempt++;playing=true;dead=complete=false;cam=0;objects.forEach(o=>o.used=false);resetPlayer();$('status').textContent='JUGANDO · intento '+attempt}
+function start(){attempt++;playing=true;dead=complete=false;cam=0;pressWas=false;objects.forEach(o=>o.used=false);resetPlayer();$('status').textContent='JUGANDO · intento '+attempt}
 function edit(){playing=false;cam=0;resetPlayer();$('status').textContent='EDITOR · GJ 0.1.0';render()}
 $('play').onclick=start;$('edit').onclick=edit;
 $('undo').onclick=()=>{if(history.length){objects=history.pop();render()}};
