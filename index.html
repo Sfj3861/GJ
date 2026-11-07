@@ -105,18 +105,18 @@ function render(){
 function die(){dead=true;playing=false;toast('Intento '+attempt+' · colisión')}
 function activate(o){
  if(o.type.startsWith('portal')){p.mode=({portalCube:'cube',portalShip:'ship',portalBall:'ball',portalUfo:'ufo'})[o.type];p.size=36;return}
- if(o.type==='orbY'&&press&&p.orbCooldown<=0){p.vy=-570*p.gravity;p.onGround=false;p.orbCooldown=.22}
- if(o.type==='orbP'&&press&&p.orbCooldown<=0){p.vy=-400*p.gravity;p.onGround=false;p.orbCooldown=.22}
- if(o.type==='orbB'&&press&&p.orbCooldown<=0){p.gravity*=-1;p.vy=0;p.orbCooldown=.22}
+ if(o.type==='orbY'&&press&&!pressWas&&p.orbCooldown<=0){p.vy=-570*p.gravity;p.onGround=false;p.orbCooldown=.22}
+ if(o.type==='orbP'&&press&&!pressWas&&p.orbCooldown<=0){p.vy=-400*p.gravity;p.onGround=false;p.orbCooldown=.22}
+ if(o.type==='orbB'&&press&&!pressWas&&p.orbCooldown<=0){p.gravity*=-1;p.vy=0;p.orbCooldown=.22}
  if(o.type==='padY'&&!o.used){p.vy=-780*p.gravity;p.onGround=false;o.used=true}
  if(o.type==='padP'&&!o.used){p.vy=-520*p.gravity;p.onGround=false;o.used=true}
  if(o.type==='padB'&&!o.used){p.gravity*=-1;p.vy=0;o.used=true}
 }
 function update(dt){
  if(!playing)return;const previousBottom=p.y+p.size/2,previousTop=p.y-p.size/2;cam+=speed*dt;p.orbCooldown=Math.max(0,p.orbCooldown-dt);
- if(p.mode==='ball'&&press&&!pressWas){p.gravity*=-1;p.vy=0;p.onGround=false;}pressWas=press;
+ if(p.mode==='ball'&&press&&!pressWas){p.gravity*=-1;p.vy=0;p.onGround=false;}
  if(p.mode==='ship'){p.vy+=(press?-1050:850)*dt;p.vy=Math.max(-440,Math.min(440,p.vy))}
- else{p.vy+=1450*p.gravity*dt;if(p.mode==='cube'&&press&&p.onGround){p.vy=-540*p.gravity;p.onGround=false}if(p.mode==='ufo'&&press&&p.orbCooldown<=0){p.vy=-470*p.gravity;p.orbCooldown=.2}}
+ else{p.vy+=1450*p.gravity*dt;if(p.mode==='cube'&&press&&p.onGround){p.vy=-540*p.gravity;p.onGround=false}if(p.mode==='ufo'&&press&&!pressWas&&p.orbCooldown<=0){p.vy=-470*p.gravity;p.orbCooldown=.2}}
  p.y+=p.vy*dt;p.onGround=false;
  if(p.gravity===1&&p.y+p.size/2>=GROUND){p.y=GROUND-p.size/2;p.vy=0;p.onGround=true}
  if(p.gravity===-1&&p.y-p.size/2<=35){p.y=35+p.size/2;p.vy=0;p.onGround=true}
@@ -128,11 +128,11 @@ function update(dt){
  else if(o.type.startsWith('pad'))activate(o);
  else if(o.type.startsWith('orb'))activate(o);
  }
- if(cam>=levelLength-W){complete=true;playing=false}
+ pressWas=press;if(cam>=levelLength-W){complete=true;playing=false}
 }
 function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);render();requestAnimationFrame(loop)}requestAnimationFrame(loop);
-function start(){attempt++;playing=true;dead=complete=false;cam=0;pressWas=false;objects.forEach(o=>o.used=false);resetPlayer();$('status').textContent='JUGANDO · intento '+attempt}
-function edit(){playing=false;cam=0;resetPlayer();$('status').textContent='EDITOR · GJ 0.1.0';render()}
+function start(){attempt++;playing=true;dead=complete=false;cam=0;press=false;pressWas=false;objects.forEach(o=>o.used=false);resetPlayer();$('status').textContent='JUGANDO · intento '+attempt}
+function edit(){playing=false;cam=0;press=false;pressWas=false;resetPlayer();$('status').textContent='EDITOR · GJ 0.1.0';render()}
 $('play').onclick=start;$('edit').onclick=edit;
 $('undo').onclick=()=>{if(history.length){objects=history.pop();render()}};
 $('clear').onclick=()=>{if(confirm('¿Eliminar todos los objetos?')){snapshot();objects=[];render()}};
