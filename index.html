@@ -62,7 +62,7 @@ const defs=[
  ['orbY','Orbe amarillo','#ffff00'],['padY','Pad amarillo','#ffff00'],['orbP','Orbe rosa','#ff4de8'],['padP','Pad rosa','#ff4de8'],['orbB','Orbe azul','#4deafa'],['padB','Pad azul','#4deafa'],
  ['portalCube','Portal cubo','#eeeeee'],['portalShip','Portal nave','#4deafa'],['portalBall','Portal ball','#ffb347'],['portalUfo','Portal UFO','#bd55ff']
 ];
-let objects=[],history=[],selected='block',playing=false,dead=false,complete=false,cam=0,speed=300,grid=48,press=false,pressWas=false,attempt=0,last=0;
+let objects=[],history=[],selected='block',playing=false,dead=false,complete=false,cam=0,speed=300,grid=48,press=false,pressWas=false,attempt=0,last=0,levelLength=5000;
 const palette=$('palette');
 for(const [id,name,color] of defs){const b=document.createElement('button');b.dataset.type=id;b.innerHTML='<i class="sw" style="background:'+color+'"></i>'+name;b.onclick=()=>choose(id);palette.append(b)}
 function choose(id){selected=id;document.querySelectorAll('#palette button').forEach(b=>b.classList.toggle('active',b.dataset.type===id));$('selection').textContent='Seleccionado: '+defs.find(d=>d[0]===id)[1]}
@@ -98,7 +98,7 @@ function render(){
  drawBg();objects.forEach(drawObject);
  if(!playing&&$('showGrid').checked){c.strokeStyle='#ffffff18';c.lineWidth=1;for(let x=-(cam%grid);x<W;x+=grid){c.beginPath();c.moveTo(x,0);c.lineTo(x,GROUND);c.stroke()}for(let y=0;y<GROUND;y+=grid){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke()}}
  drawPlayer();
- if(playing){c.fillStyle='#fff';c.font='bold 16px system-ui';c.fillText(Math.min(100,Math.floor(cam/Math.max(1,5000-W)*100))+'%',W-60,28);c.fillStyle='#29364c';c.fillRect(18,18,160,7);c.fillStyle='#4deafa';c.fillRect(18,18,160*Math.min(1,cam/(5000-W)),7)}
+ if(playing){c.fillStyle='#fff';c.font='bold 16px system-ui';c.fillText(Math.min(100,Math.floor(cam/Math.max(1,levelLength-W)*100))+'%',W-60,28);c.fillStyle='#29364c';c.fillRect(18,18,160,7);c.fillStyle='#4deafa';c.fillRect(18,18,160*Math.min(1,cam/(levelLength-W)),7)}
  if(!playing){c.fillStyle='#fff';c.font='bold 15px system-ui';c.fillText('EDITOR · '+objects.length+' objetos',18,27)}
  if(dead||complete){c.fillStyle='#05070bdd';c.fillRect(0,0,W,H);c.textAlign='center';c.fillStyle='#fff';c.font='bold 38px system-ui';c.fillText(complete?'¡NIVEL COMPLETADO!':'¡INTÉNTALO DE NUEVO!',W/2,H/2);c.font='16px system-ui';c.fillText('Pulsa o toca para reintentar',W/2,H/2+32);c.textAlign='left'}
 }
@@ -127,7 +127,7 @@ function update(dt){
  else if(o.type.startsWith('pad'))activate(o);
  else if(o.type.startsWith('orb'))activate(o);
  }
- if(cam>=5000-W){complete=true;playing=false}
+ if(cam>=levelLength-W){complete=true;playing=false}
 }
 function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);render();requestAnimationFrame(loop)}requestAnimationFrame(loop);
 function start(){attempt++;playing=true;dead=complete=false;cam=0;pressWas=false;objects.forEach(o=>o.used=false);resetPlayer();$('status').textContent='JUGANDO · intento '+attempt}
@@ -145,9 +145,9 @@ window.addEventListener('keyup',e=>{if(['Space','ArrowUp','KeyW'].includes(e.cod
 $('touchJump').addEventListener('pointerdown',e=>{e.preventDefault();press=true;if(!playing)start()});['pointerup','pointerleave','pointercancel'].forEach(ev=>$('touchJump').addEventListener(ev,()=>press=false));
 $('touchPause').onclick=edit;
 function download(name,data,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([data],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
-$('save').onclick=()=>download('geometry-jump-level.json',JSON.stringify({format:'GJ-level',version:1,speed,grid,objects},null,2),'application/json');
+$('save').onclick=()=>download('geometry-jump-level.json',JSON.stringify({format:'GJ-level',version:2,speed,grid,levelLength,objects},null,2),'application/json');
 $('load').onclick=()=>$('file').click();
-$('file').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());if(d.format!=='GJ-level'||!Array.isArray(d.objects))throw Error('Formato incorrecto');objects=d.objects;speed=d.speed||300;grid=d.grid||48;$('speed').value=speed;$('grid').value=grid;edit();toast('Nivel cargado')}catch(err){alert('No se pudo cargar: '+err.message)}e.target.value=''};
+$('file').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());if(d.format!=='GJ-level'||!Array.isArray(d.objects))throw Error('Formato incorrecto');objects=d.objects;speed=d.speed||300;grid=d.grid||48;levelLength=Math.max(2000,d.levelLength||5000);$('speed').value=speed;$('grid').value=grid;edit();toast('Nivel cargado')}catch(err){alert('No se pudo cargar: '+err.message)}e.target.value=''};
 $('touchControls').style.display=('ontouchstart' in window)?'flex':'none';render();
 })();
 </script>
