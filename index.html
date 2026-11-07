@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#101522">
+<title>Geometry Jump — GJ</title>
+<style>
+:root{color-scheme:dark;--bg:#101522;--panel:#1a2333;--panel2:#263247;--line:#3a4a63;--cyan:#4deafa;--fg:#eef5ff;--muted:#a8b6ca}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px system-ui,Segoe UI,sans-serif}
+header{height:54px;padding:0 16px;display:flex;align-items:center;border-bottom:1px solid var(--line);background:#151d2b;gap:12px}
+.logo{font-weight:950;letter-spacing:.12em}.logo b{color:var(--cyan)}#status{margin-left:auto;color:var(--muted);font-size:12px}
+main{max-width:1440px;margin:auto;padding:12px;display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:12px}
+.toolbar,.panel{background:var(--panel);border:1px solid var(--line);border-radius:11px}
+.toolbar{display:flex;gap:7px;flex-wrap:wrap;padding:9px;margin-bottom:10px}
+button,.file{border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--fg);padding:8px 10px;font-weight:650;cursor:pointer}
+button:hover,.file:hover{border-color:var(--cyan)}button.primary{background:#087d91;border-color:#14aabd}button.active{outline:2px solid var(--cyan)}
+#stage{position:relative;background:#05070b;border:1px solid #526078;border-radius:10px;overflow:hidden;touch-action:none}
+canvas{width:100%;height:auto;display:block;aspect-ratio:16/9;touch-action:none}
+.hint{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px;padding:8px 2px}
+aside{display:flex;flex-direction:column;gap:10px}.panel{padding:12px}.panel h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#c7d7ec;margin:0 0 10px}
+#palette{display:grid;grid-template-columns:1fr 1fr;gap:6px}#palette button{text-align:left;min-height:43px;font-size:12px;padding:6px;display:flex;align-items:center;gap:7px}
+.sw{width:17px;height:17px;border:2px solid white;border-radius:5px;flex:none}
+.small{font-size:12px;color:var(--muted);line-height:1.5}label{display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}input[type=range]{width:100%}
+.row{display:flex;gap:6px}.row button{flex:1}
+#touchControls{display:none;position:absolute;inset:auto 12px 12px;justify-content:space-between;pointer-events:none}
+#touchControls button{pointer-events:auto;min-width:72px;min-height:58px;background:#162338cc;border-color:#a6c1df}
+@media(max-width:850px){main{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .panel:last-child{grid-column:1/-1}}
+@media(max-width:520px){main{padding:7px}.side{grid-template-columns:1fr}.side .panel:last-child{grid-column:auto}.hint{font-size:10px}}
+</style>
+</head>
+<body>
+<header><div class="logo">GEOMETRY <b>JUMP</b></div><div id="status">EDITOR · GJ 0.1.0</div></header>
+<main>
+<section>
+<div class="toolbar">
+<button id="play" class="primary">▶ Jugar</button><button id="edit">■ Editor</button>
+<button id="undo">↶ Deshacer</button><button id="clear">Limpiar</button>
+<button id="save">Guardar nivel</button><button id="load">Cargar nivel</button><input id="file" type="file" accept=".json,application/json" hidden>
+</div>
+<div id="stage"><canvas id="game" width="960" height="540"></canvas>
+<div id="touchControls"><button id="touchJump">SALTAR</button><button id="touchPause">PAUSA</button></div></div>
+<div class="hint"><span>Editor: clic/toca para colocar · clic derecho para borrar</span><span>Juego: ESPACIO / ↑ / toque</span></div>
+</section>
+<aside class="side">
+<section class="panel"><h2>Objetos</h2><div id="palette"></div><p class="small">Elige un objeto y colócalo en el escenario. Los orbes se activan pulsando; los pads y portales, al tocarlos.</p></section>
+<section class="panel"><h2>Configuración</h2>
+<label for="speed">Velocidad</label><input id="speed" type="range" min="180" max="500" value="300">
+<label for="grid">Cuadrícula</label><input id="grid" type="range" min="24" max="72" step="8" value="48">
+<label><input id="showGrid" type="checkbox" checked> Mostrar cuadrícula en editor</label>
+<p class="small" id="selection">Seleccionado: Bloque</p></section>
+<section class="panel"><h2>Acerca del prototipo</h2><p class="small">Motor inicial propio de Geometry Jump. Los gráficos actuales son provisionales; el spritesheet del creador se integrará cuando esté disponible como archivo del repositorio.</p><p class="small">Incluye editor, juego, físicas iniciales, modos Cubo/Nave/Ball/UFO, orbes, pads, portales y niveles JSON.</p></section>
+</aside>
+</main>
+<script>
+(()=>{
+'use strict';
+const canvas=document.querySelector('#game'),c=canvas.getContext('2d'),W=960,H=540,GROUND=438;
+const $=id=>document.getElementById(id);
+const defs=[
+ ['block','Bloque','#999999'],['spike','Pincho','#ff526d'],['saw','Sierra','#dce8f7'],
+ ['orbY','Orbe amarillo','#ffff00'],['padY','Pad amarillo','#ffff00'],['orbP','Orbe rosa','#ff4de8'],['padP','Pad rosa','#ff4de8'],['orbB','Orbe azul','#4deafa'],['padB','Pad azul','#4deafa'],
+ ['portalCube','Portal cubo','#eeeeee'],['portalShip','Portal nave','#4deafa'],['portalBall','Portal ball','#ffb347'],['portalUfo','Portal UFO','#bd55ff']
+];
+let objects=[],history=[],selected='block',playing=false,dead=false,complete=false,cam=0,speed=300,grid=48,press=false,attempt=0,last=0;
+const palette=$('palette');
+for(const [id,name,color] of defs){const b=document.createElement('button');b.dataset.type=id;b.innerHTML='<i class="sw" style="background:'+color+'"></i>'+name;b.onclick=()=>choose(id);palette.append(b)}
+function choose(id){selected=id;document.querySelectorAll('#palette button').forEach(b=>b.classList.toggle('active',b.dataset.type===id));$('selection').textContent='Seleccionado: '+defs.find(d=>d[0]===id)[1]}
+choose('block');
+let p;
+function resetPlayer(){p={x:145,y:GROUND-18,vy:0,size:36,mode:'cube',gravity:1,onGround:true,rotation:0,orbCooldown:0,mini:false,dead:false}}
+resetPlayer();
+const clone=o=>JSON.parse(JSON.stringify(o));
+function snapshot(){history.push(clone(objects));if(history.length>60)history.shift()}
+function toast(msg){$('status').textContent=msg;setTimeout(()=>$('status').textContent=playing?'JUGANDO · intento '+attempt:'EDITOR · GJ 0.1.0',1300)}
+function add(type,x,y){snapshot();const size=grid;objects.push({id:Math.random().toString(36).slice(2),type,x,y,w:type==='block'?size:type.startsWith('portal')?42:type==='spike'?size:30,h:type==='block'?size:type.startsWith('portal')?78:type==='spike'?size:30,used:false})}
+function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+function drawBg(){
+ c.fillStyle='#070a12';c.fillRect(0,0,W,H);
+ c.save();c.translate(-(cam*.2%96),0);c.strokeStyle='#202c40';c.lineWidth=2;
+ for(let x=-100;x<W+100;x+=96){c.strokeRect(x,80,82,82);c.strokeRect(x+30,205,42,42)}c.restore();
+ c.fillStyle='#858585';c.fillRect(0,GROUND,W,H-GROUND);
+ c.save();c.translate(-(cam%96),0);c.strokeStyle='#bcbcbc';c.lineWidth=4;
+ for(let x=-100;x<W+100;x+=96){c.strokeRect(x+2,GROUND+2,92,92);c.strokeRect(x+2,GROUND+98,44,42);c.strokeRect(x+50,GROUND+98,44,42)}c.restore();
+ c.fillStyle='#eee';c.fillRect(0,GROUND,W,4);
+}
+function drawObject(o){
+ const x=o.x-cam,y=o.y;if(x<-90||x>W+90)return;c.save();
+ if(o.type==='block'){c.fillStyle='#999';c.strokeStyle='#eee';c.lineWidth=3;c.fillRect(x,y,o.w,o.h);c.strokeRect(x,y,o.w,o.h);c.fillStyle='#111';c.fillRect(x+o.w*.28,y+o.h*.28,o.w*.44,o.h*.44)}
+ else if(o.type==='spike'){c.fillStyle='#ff536d';c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.moveTo(x,y+o.h);c.lineTo(x+o.w/2,y);c.lineTo(x+o.w,y+o.h);c.closePath();c.fill();c.stroke()}
+ else if(o.type==='saw'){c.translate(x+o.w/2,y+o.h/2);c.rotate(performance.now()/500);c.fillStyle='#cbd5e1';c.strokeStyle='#fff';for(let i=0;i<12;i++){c.rotate(Math.PI/6);c.fillRect(-5,-o.h/2,10,12)}c.beginPath();c.arc(0,0,12,0,Math.PI*2);c.fill();c.stroke()}
+ else if(o.type.startsWith('orb')||o.type.startsWith('pad')){let color=o.type.endsWith('Y')?'#ffff00':o.type.endsWith('P')?'#ff4de8':'#4deafa';c.fillStyle=color;c.strokeStyle='#fff';c.lineWidth=3;if(o.type.startsWith('orb')){c.beginPath();c.arc(x+o.w/2,y+o.h/2,o.w*.47,0,Math.PI*2);c.fill();c.stroke();c.strokeStyle='#101522';c.beginPath();c.arc(x+o.w/2,y+o.h/2,o.w*.30,0,Math.PI*2);c.stroke()}else{c.beginPath();c.ellipse(x+o.w/2,y+o.h*.78,o.w*.67,o.h*.27,0,Math.PI,0);c.fill();c.stroke()}}
+ else if(o.type.startsWith('portal')){let color=({'portalCube':'#eee','portalShip':'#4deafa','portalBall':'#ffb347','portalUfo':'#bd55ff'})[o.type];c.strokeStyle='#fff';c.lineWidth=3;c.fillStyle=color;c.beginPath();c.ellipse(x+o.w/2,y+o.h/2,o.w*.46,o.h*.49,0,0,Math.PI*2);c.fill();c.stroke();c.strokeStyle=color;c.lineWidth=7;c.beginPath();c.ellipse(x+o.w/2,y+o.h/2,o.w*.32,o.h*.39,0,0,Math.PI*2);c.stroke()}
+ c.restore();
+}
+function drawPlayer(){c.save();c.translate(p.x,p.y);const s=p.size;c.lineWidth=3;c.strokeStyle='#fff';if(p.mode==='ship'){c.fillStyle='#4deafa';c.beginPath();c.moveTo(-s/2,-s/3);c.lineTo(s/2,0);c.lineTo(-s/2,s/3);c.closePath();c.fill();c.stroke()}else if(p.mode==='ufo'){c.fillStyle='#ff4de8';c.beginPath();c.ellipse(0,0,s*.6,s*.32,0,Math.PI,0);c.lineTo(s*.6,s*.25);c.lineTo(-s*.6,s*.25);c.closePath();c.fill();c.stroke()}else{c.rotate(p.rotation);c.fillStyle=p.mode==='ball'?'#ffb347':'#42ef63';c.fillRect(-s/2,-s/2,s,s);c.strokeRect(-s/2,-s/2,s,s);c.fillStyle='#111';c.fillRect(-s*.16,-s*.16,s*.32,s*.32)}c.restore()}
+function render(){
+ drawBg();objects.forEach(drawObject);
+ if(!playing&&$('showGrid').checked){c.strokeStyle='#ffffff18';c.lineWidth=1;for(let x=-(cam%grid);x<W;x+=grid){c.beginPath();c.moveTo(x,0);c.lineTo(x,GROUND);c.stroke()}for(let y=0;y<GROUND;y+=grid){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke()}}
+ drawPlayer();
+ if(playing){c.fillStyle='#fff';c.font='bold 16px system-ui';c.fillText(Math.min(100,Math.floor(cam/Math.max(1,5000-W)*100))+'%',W-60,28);c.fillStyle='#29364c';c.fillRect(18,18,160,7);c.fillStyle='#4deafa';c.fillRect(18,18,160*Math.min(1,cam/(5000-W)),7)}
+ if(!playing){c.fillStyle='#fff';c.font='bold 15px system-ui';c.fillText('EDITOR · '+objects.length+' objetos',18,27)}
+ if(dead||complete){c.fillStyle='#05070bdd';c.fillRect(0,0,W,H);c.textAlign='center';c.fillStyle='#fff';c.font='bold 38px system-ui';c.fillText(complete?'¡NIVEL COMPLETADO!':'¡INTÉNTALO DE NUEVO!',W/2,H/2);c.font='16px system-ui';c.fillText('Pulsa o toca para reintentar',W/2,H/2+32);c.textAlign='left'}
+}
+function die(){dead=true;playing=false;toast('Intento '+attempt+' · colisión')}
+function activate(o){
+ if(o.type.startsWith('portal')){p.mode=({portalCube:'cube',portalShip:'ship',portalBall:'ball',portalUfo:'ufo'})[o.type];p.size=36;return}
+ if(o.type==='orbY'&&press&&p.orbCooldown<=0){p.vy=-570*p.gravity;p.onGround=false;p.orbCooldown=.22}
+ if(o.type==='orbP'&&press&&p.orbCooldown<=0){p.vy=-400*p.gravity;p.onGround=false;p.orbCooldown=.22}
+ if(o.type==='orbB'&&press&&p.orbCooldown<=0){p.gravity*=-1;p.vy=0;p.orbCooldown=.22}
+ if(o.type==='padY'&&!o.used){p.vy=-780*p.gravity;p.onGround=false;o.used=true}
+ if(o.type==='padP'&&!o.used){p.vy=-520*p.gravity;p.onGround=false;o.used=true}
+ if(o.type==='padB'&&!o.used){p.gravity*=-1;p.vy=0;o.used=true}
+}
+function update(dt){
+ if(!playing)return;const prevY=p.y;cam+=speed*dt;p.orbCooldown=Math.max(0,p.orbCooldown-dt);
+ if(p.mode==='ship'){p.vy+=(press?-1050:850)*dt;p.vy=Math.max(-440,Math.min(440,p.vy))}
+ else{p.vy+=1450*p.gravity*dt;if(p.mode==='cube'&&press&&p.onGround){p.vy=-540*p.gravity;p.onGround=false}if(p.mode==='ufo'&&press&&p.orbCooldown<=0){p.vy=-470*p.gravity;p.orbCooldown=.2}}
+ p.y+=p.vy*dt;p.onGround=false;
+ if(p.gravity===1&&p.y+p.size/2>=GROUND){p.y=GROUND-p.size/2;p.vy=0;p.onGround=true}
+ if(p.gravity===-1&&p.y-p.size/2<=35){p.y=35+p.size/2;p.vy=0;p.onGround=true}
+ if(p.y>H+80||p.y<-80){die();return}
+ const box={x:p.x-p.size/2,y:p.y-p.size/2,w:p.size,h:p.size};
+ for(const o of objects){if(o.x-cam>W+80||o.x+o.w-cam<-80)continue;const ob={x:o.x-cam,y:o.y,w:o.w,h:o.h};if(!rectHit(box,ob))continue;
+ if(['block','spike','saw'].includes(o.type)){die();return}
+ if(o.type.startsWith('portal'))activate(o);
+ else if(o.type.startsWith('pad'))activate(o);
+ else if(o.type.startsWith('orb'))activate(o);
+ }
+ if(cam>=5000-W){complete=true;playing=false}
+}
+function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);render();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+function start(){attempt++;playing=true;dead=complete=false;cam=0;objects.forEach(o=>o.used=false);resetPlayer();$('status').textContent='JUGANDO · intento '+attempt}
+function edit(){playing=false;cam=0;resetPlayer();$('status').textContent='EDITOR · GJ 0.1.0';render()}
+$('play').onclick=start;$('edit').onclick=edit;
+$('undo').onclick=()=>{if(history.length){objects=history.pop();render()}};
+$('clear').onclick=()=>{if(confirm('¿Eliminar todos los objetos?')){snapshot();objects=[];render()}};
+$('speed').oninput=e=>speed=+e.target.value;$('grid').oninput=e=>grid=+e.target.value;
+function pos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
+canvas.addEventListener('pointerdown',e=>{if(playing){press=true;if(dead||complete)start();return}if(e.button===2)return;const q=pos(e),x=Math.round((q.x+cam)/grid)*grid,y=Math.max(0,Math.min(GROUND-grid,Math.round((q.y-grid/2)/grid)*grid));add(selected,x,y);render()});
+canvas.addEventListener('pointerup',()=>press=false);canvas.addEventListener('pointerleave',()=>press=false);
+canvas.addEventListener('contextmenu',e=>{e.preventDefault();if(playing)return;const q=pos(e),x=q.x+cam,y=q.y,i=objects.findIndex(o=>x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h);if(i>=0){snapshot();objects.splice(i,1);render()}});
+window.addEventListener('keydown',e=>{if(['Space','ArrowUp','KeyW'].includes(e.code)){e.preventDefault();if(!press&&playing&&p.mode==='cube'&&p.onGround)press=true;else press=true;if(!playing)start()}if(e.code==='Escape')edit()});
+window.addEventListener('keyup',e=>{if(['Space','ArrowUp','KeyW'].includes(e.code))press=false});
+$('touchJump').addEventListener('pointerdown',e=>{e.preventDefault();press=true;if(!playing)start()});['pointerup','pointerleave','pointercancel'].forEach(ev=>$('touchJump').addEventListener(ev,()=>press=false));
+$('touchPause').onclick=edit;
+function download(name,data,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([data],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+$('save').onclick=()=>download('geometry-jump-level.json',JSON.stringify({format:'GJ-level',version:1,speed,grid,objects},null,2),'application/json');
+$('load').onclick=()=>$('file').click();
+$('file').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());if(d.format!=='GJ-level'||!Array.isArray(d.objects))throw Error('Formato incorrecto');objects=d.objects;speed=d.speed||300;grid=d.grid||48;$('speed').value=speed;$('grid').value=grid;edit();toast('Nivel cargado')}catch(err){alert('No se pudo cargar: '+err.message)}e.target.value=''};
+$('touchControls').style.display=('ontouchstart' in window)?'flex':'none';render();
+})();
+</script>
+</body></html>
