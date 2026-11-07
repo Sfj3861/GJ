@@ -95,8 +95,12 @@ function drawObject(o){
 }
 function drawPlayer(){c.save();c.translate(p.x,p.y);const s=p.size;c.lineWidth=3;c.strokeStyle='#fff';if(p.mode==='ship'){c.fillStyle='#4deafa';c.beginPath();c.moveTo(-s/2,-s/3);c.lineTo(s/2,0);c.lineTo(-s/2,s/3);c.closePath();c.fill();c.stroke()}else if(p.mode==='ufo'){c.fillStyle='#ff4de8';c.beginPath();c.ellipse(0,0,s*.6,s*.32,0,Math.PI,0);c.lineTo(s*.6,s*.25);c.lineTo(-s*.6,s*.25);c.closePath();c.fill();c.stroke()}else{c.rotate(p.rotation);c.fillStyle=p.mode==='ball'?'#ffb347':'#42ef63';c.fillRect(-s/2,-s/2,s,s);c.strokeRect(-s/2,-s/2,s,s);c.fillStyle='#111';c.fillRect(-s*.16,-s*.16,s*.32,s*.32)}c.restore()}
 function render(){
- if(!playing)cam=editorCam;if(!playing){c.save();c.scale(editorZoom,editorZoom)}drawBg();objects.forEach(drawObject);if(!playing)c.restore();
- if(!playing&&$('showGrid').checked){c.strokeStyle='#ffffff18';c.lineWidth=1;for(let x=-(cam%grid);x<W;x+=grid){c.beginPath();c.moveTo(x,0);c.lineTo(x,GROUND);c.stroke()}for(let y=0;y<GROUND;y+=grid){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke()}}
+ if(!playing)cam=editorCam;
+ if(!playing){c.save();c.scale(editorZoom,editorZoom)}
+ drawBg();objects.forEach(drawObject);
+ if(!playing&&$('showGrid').checked){c.strokeStyle='#ffffff18';c.lineWidth=1;for(let x=-(cam%grid);x<W/editorZoom;x+=grid){c.beginPath();c.moveTo(x,0);c.lineTo(x,GROUND);c.stroke()}for(let y=0;y<GROUND;y+=grid){c.beginPath();c.moveTo(0,y);c.lineTo(W/editorZoom,y);c.stroke()}}
+ if(!playing&&selectedObject){const so=objects.find(o=>o.id===selectedObject);if(so){c.strokeStyle='#4deafa';c.lineWidth=3;c.setLineDash([7,5]);c.strokeRect(so.x-cam-4,so.y-4,so.w+8,so.h+8);c.setLineDash([])}}
+ if(!playing)c.restore();
  drawPlayer();
  if(playing){c.fillStyle='#fff';c.font='bold 16px system-ui';c.fillText(Math.min(100,Math.floor(cam/Math.max(1,levelLength-W)*100))+'%',W-60,28);c.fillStyle='#29364c';c.fillRect(18,18,160,7);c.fillStyle='#4deafa';c.fillRect(18,18,160*Math.min(1,cam/(levelLength-W)),7)}
  if(!playing){c.fillStyle='#fff';c.font='bold 15px system-ui';c.fillText('EDITOR · '+objects.length+' objetos',18,27)}
